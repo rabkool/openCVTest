@@ -1,23 +1,47 @@
 import cv2
+import numpy
 
-img = cv2.imread('sora.jpg')
-img = cv2.resize(img, (1920, 1920), interpolation=cv2.INTER_LANCZOS4)
 
-'''
-cv2.imread
-flags>0时表示以彩色方式读入图片
-flags=0时表示以灰度图方式读入图片
-flags<0时表示以图片的本来的格式读入图片
+def pHash(img):
+    # 感知哈希算法
+    # 缩放32*32
+    img = cv2.resize(img, (32, 32))  # , interpolation=cv2.INTER_CUBIC
 
-interpolation - 插值方法。共有5种：
-１）INTER_NEAREST - 最近邻插值法
-２）INTER_LINEAR - 双线性插值法（默认）
-３）INTER_AREA - 基于局部像素的重采样（resampling using pixel area relation）。对于图像抽取（image decimation）来说，这可能是一个更好的方法。但如果是放大图像时，它和最近邻法的效果类似。
-４）INTER_CUBIC - 基于4x4像素邻域的3次插值法
-５）INTER_LANCZOS4 - 基于8x8像素邻域的Lanczos插值
-'''
-# 弹框显示
-cv2.imshow('rabkool', img)
+    # 转换为灰度图
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-# 不加这个闪退
-cv2.waitKey(0)
+    # 将灰度图转为浮点型，再进行dct变换
+    dct = cv2.dct(numpy.float32(gray))
+    # opencv实现的掩码操作
+    dct_roi = dct[0:8, 0:8]
+
+    hash = []
+    avreage = numpy.mean(dct_roi)
+    for i in range(dct_roi.shape[0]):
+        for j in range(dct_roi.shape[1]):
+            if dct_roi[i, j] > avreage:
+                hash.append(1)
+            else:
+                hash.append(0)
+    return hash
+
+
+# Hash值对比
+def cmpHash(hash1, hash2):
+    n = 0
+    # hash长度不同则返回-1代表传参出错
+    if len(hash1) != len(hash2):
+        return -1
+    # 遍历判断
+    for i in range(len(hash1)):
+        # 不相等则n计数+1，n最终为相似度
+        if hash1[i] != hash2[i]:
+            n = n + 1
+    return n
+
+
+if __name__ == "__main__":
+    img1 = cv2.imread("a.jpg")
+    img2 = cv2.imread("4.jpg")
+
+    print(cmpHash(pHash(img1), pHash(img2)))
